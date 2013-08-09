@@ -1,0 +1,262 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" /> 
+<link rel="stylesheet" type="text/css" href="searchbox.css" />
+<title>CS453-Team-Graduate</title>
+
+<style>
+hr
+{
+   width:30%;
+   margin-left:0;
+}
+
+</style>
+
+	<link rel="stylesheet" href="http://code.jquery.com/ui/1.9.2/themes/base/jquery-ui.css" />
+	<script src="http://code.jquery.com/jquery-1.8.3.js"></script>
+    <script src="http://code.jquery.com/ui/1.9.2/jquery-ui.js"></script>
+    <link rel="stylesheet" href="/resources/demos/style.css" />
+    <script>
+    $(function() {
+        var availableTags = [
+            "Action Script",
+            "AppleScript",
+            "Asp",
+            "BASIC",
+            "C",
+            "C++",
+            "Clojure",
+            "COBOL",
+            "ColdFusion",
+            "Erlang",
+            "Fortran",
+            "Groovy",
+            "Haskell",
+            "Java",
+            "JavaScript",
+            "Lisp",
+            "Perl",
+            "PHP",
+            "Python",
+            "Ruby",
+            "Scala",
+            "Scheme"
+        ];
+        $( "#query" ).autocomplete({
+            source: availableTags
+        });
+    });
+    </script>
+</head>
+
+<body>
+<!-- SiteSearch Google -->
+<div class="wrap left rounded">
+  <input id="query" type="text" size="40%" onkeyup="sendMessage(0,10)" speech="speech" x-webkit-speech="x-webkit-speech"/>
+  <input type="button" value="Search" onclick="sendMessage(0,10)"/>
+</div>
+<!-- SiteSearch Google -->
+</br>
+</br>
+</br>
+
+<div id="options">
+
+<select id="querytype">
+  <option value="">Query Type</option>
+  <option value="AND">AND</option>
+  <option value="OR">OR</option>
+</select>
+
+<select id="model" onchange="addParameters(this.value)">
+  <option value="">Model</option>
+  <option value="TFIDF">TFIDF</option>
+  <option value="BM25">BM25</option>
+</select>
+
+<div id="parameters" >
+</div>
+
+</div>
+
+<hr>
+
+<div id="stat">
+</div>
+  
+<div id="doclists">
+</div>
+
+<div id="navigation">
+</div>
+
+<script>
+var server_address = "localhost/";
+function sendMessage(start_index, end_index){
+  var query = document.getElementById("query").value;
+  if (query == ""){
+    document.getElementById("stat").innerHTML = "";
+    document.getElementById("doclists").innerHTML="";
+    document.getElementById("navigation").innerHTML="";
+    return;
+  }
+  
+  query = removeSpecialCharacter(query);
+  
+  var query_type = document.getElementById("querytype").value;
+  var model =  document.getElementById("model").value;
+  var parameters = "";
+  var message = "";
+  
+  if (model=="BM25"){
+      var c = document.getElementById("c").value;
+      var k1 = document.getElementById("k1").value;
+      var k2 = document.getElementById("k2").value;
+      var b  = document.getElementById("b").value;
+      parameters = c+" "+k1+" "+k2+" "+b;
+  }
+  else if (model == "TFIDF"){
+      var c = document.getElementById("c").value;
+      parameters = c;
+  }
+  message = query_type+":"+model+":"+parameters+":"+start_index+":"+end_index+":"+query;
+  console.log("query "+query);
+  console.log("type "+ query_type);
+  console.log("model "+ model);
+  console.log("params "+parameters);
+  console.log("message "+message);
+  
+  var xmlhttp=new XMLHttpRequest();
+  xmlhttp.onreadystatechange=function()
+  {
+  if (xmlhttp.readyState==4 && xmlhttp.status==200)
+    {
+      var response = xmlhttp.responseText;
+      if (response == "\n"){
+          document.getElementById("doclists").innerHTML="Can not send query!";
+      }
+      else{
+          var result = JSON.parse(response);
+          var stat = "<p>"+ result.number_docs+" pages ("+result.handling_time+" seconds) </p>" ;
+          document.getElementById("stat").innerHTML = stat;
+
+          output_doc_list = result.output_doc_list;
+          document.getElementById("doclists").innerHTML="";
+          for (var i=0; i< output_doc_list.length; i++){
+                var docid = output_doc_list[i].docid;
+                var title = output_doc_list[i].title;
+                var url = output_doc_list[i].url;
+                var relevant_score = output_doc_list[i].relevant_score.toFixed(5);
+                var page_rank = output_doc_list[i].page_rank.toFixed(5);
+                var doc = "<p>" + "<a href=" + url + ">" + title  +"</a>" + "</br>";
+                doc += "Relevant score: " + relevant_score + "\tPage rank: "+ page_rank+ " ";
+                doc += "<a style=\"color: #800000\" href=" + server_address+docid+".html" + ">" + "[Cached]"  +"</a>" +"</p>";
+                document.getElementById("doclists").innerHTML += doc; 
+          }
+         
+         document.getElementById("navigation").innerHTML="";
+         
+         var set = document.createElement("input");
+         set.type = "text";
+         set.value = start_index/10+1;
+         set.size = 10;
+         set.style = "vertical-align:middle";
+         set.onkeypress= function(e) {
+                            if (e.keyCode == 13){
+                                if (set.value > 0 && set.value <= result.number_docs/10) {
+                                        sendMessage((parseInt(set.value)-1)*10, set.value*10);
+                                    }
+                            }
+                         }
+         var next = document.createElement("input");
+         next.type = "button";
+         next.value = "  Next  ";
+         next.onclick = function(){
+                            if (end_index < result.number_docs) 
+                                sendMessage(start_index+10, end_index+10);
+                            }
+            
+         var previous = document.createElement("input");
+         previous.type = "button";
+         previous.value = "Previous";
+         previous.onclick = function(){
+                                if (start_index >= 10) 
+                                    sendMessage(start_index-10, end_index-10);
+                                }
+         
+         document.getElementById("navigation").appendChild(previous);
+         document.getElementById("navigation").appendChild(set);
+         document.getElementById("navigation").appendChild(next);
+      }
+    }
+  }
+  xmlhttp.open("GET","sendmessage.php?message="+message,true);
+  xmlhttp.send();
+}
+
+function removeSpecialCharacter(query){
+    var new_query = "";
+    for (var i=0; i< query.length;i++)
+        if (query[i] != ":")
+            new_query += query[i];
+    return new_query;
+}
+
+function addParameters(value){
+    document.getElementById("parameters").innerHTML = "";
+    
+    if (value == "BM25"){
+        var c_label = document.createTextNode("C ");
+        var c = document.createElement("input");
+        c.id = "c";
+        c.type = "text";
+        c.size = "5";
+        c.setAttribute("value","0.5");
+        document.getElementById("parameters").appendChild(c_label);
+        document.getElementById("parameters").appendChild(c);
+        
+        var k1_label = document.createTextNode("K1 ");
+        var k1 = document.createElement("input");
+        k1.id = "k1";
+        k1.type = "text";
+        k1.size = "5";
+        k1.setAttribute("value","1.2");
+        document.getElementById("parameters").appendChild(k1_label);
+        document.getElementById("parameters").appendChild(k1);
+        
+        var k2_label = document.createTextNode(" K2 ");
+        var k2 = document.createElement("input");
+        k2.id = "k2";
+        k2.type = "text";
+        k2.size = "5";
+        k2.setAttribute("value","200");
+        document.getElementById("parameters").appendChild(k2_label);
+        document.getElementById("parameters").appendChild(k2);
+        
+        var b_label = document.createTextNode(" B ");
+        var b = document.createElement("input");
+        b.id = "b";
+        b.type = "text";
+        b.size = "5";
+        b.setAttribute("value","0.75");
+        document.getElementById("parameters").appendChild(b_label);
+        document.getElementById("parameters").appendChild(b);
+        
+    }
+    else if (value == "TFIDF"){        
+        var c_label = document.createTextNode("C ");
+        var c = document.createElement("input");
+        c.id = "c";
+        c.type = "text";
+        c.size = "5";
+        c.setAttribute("value","0.5");
+        document.getElementById("parameters").appendChild(c_label);
+        document.getElementById("parameters").appendChild(c);
+    }
+}
+</script>
+
+</body>
+</html>

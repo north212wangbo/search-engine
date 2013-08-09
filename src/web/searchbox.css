@@ -1,0 +1,35 @@
+﻿.left {
+    float:left;
+}
+.rounded {
+    -webkit-border-radius:5px;
+    -moz-border-radius:5px;
+    border-radius:5px;
+}
+.wrap {
+    position:relative;
+    padding:5px 6px 6px 7px; /* readjust in jsfiddle*/
+    background:#f0f0f0;
+    border:1px solid #ccc;
+    overflow:hidden;
+}
+.search {
+    width:360px;
+    position:relative; top:2px; /* readujst in jsfiddle */
+    padding:8px 5px 8px 30px;
+    border:1px solid #ccc;
+    background:white url(http://i.imgur.com/lFkqn.png) left center no-repeat;
+}
+.go {
+    position:relative; top:0;
+    padding:3px 5px 2px;
+    margin-left:8px;
+    border:none;
+    background: -webkit-gradient(linear, left top, left bottom, from(#d631a7), to(#8f1b64));
+    background: -moz-linear-gradient(top,  #d631a7,  #8f1b64);
+}
+.go span {
+    display:block;
+    width:64px; height:28px;
+    background:url(http://i.imgur.com/mxxzQ.png) 0 0 no-repeat;
+}?
